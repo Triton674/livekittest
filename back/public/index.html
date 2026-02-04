@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>LiveKit 2 Participants Test</title>
+  <style>
+    #transcript { white-space: pre-wrap; border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
+    audio { display: block; margin-top: 5px; }
+    .participant { font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>LiveKit 2 Participants Demo</h1>
+<button id="joinAdmin">Lancer la room (Admin)</button>
+<button id="stopAdmin" disabled>Stop Session</button>
+<div id="transcript"></div>
+<script type="module">
+import { Room } from "https://unpkg.com/livekit-client/dist/livekit-client.esm.mjs"
+
+let room, recognition, recorder, chunks=[], micStream
+
+document.getElementById("joinAdmin").onclick = async () => {
+  const res = await fetch("https://livekit-production-34a9.up.railway.app/token?role=admin")
+  const { token, url, room: roomName } = await res.json()
+  room = new Room()
+  await room.connect(url, token)
+  await room.localParticipant.setMicrophoneEnabled(true)
+
+  document.getElementById("joinAdmin").disabled = true
+  document.getElementById("stopAdmin").disabled = false
+
+  startTranscription()
+  startRecording()
+}
+
+function startTranscription() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SpeechRecognition) return
+
+  recognition = new SpeechRecognition()
+  recognition.continuous = true
+  recognition.interimResults = true
+  recognition.lang = "fr-FR"
+
+  recognition.onresult = e => {
+    let text = ""
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      text += e.results[i][0].transcript
+    }
+    document.getElementById("transcript").innerText += text + "\n"
+  }
+
+  recognition.onend = () => recognition.start()
+  recognition.start()
+}
+
+async function startRecording() {
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  recorder = new MediaRecorder(micStream)
+  recorder.ondataavailable = e => chunks.push(e.data)
+  recorder.start()
+}
+
+document.getElementById("stopAdmin").onclick = () => {
+  recognition.stop()
+  recorder.stop()
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: "audio/webm" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "session-admin.webm"
+    a.click()
+  }
+  micStream.getTracks().forEach(track => track.stop())
+}
+</script>
+
+</body>
+</html>
