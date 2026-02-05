@@ -22,12 +22,10 @@
   document.getElementById("joinAdmin").onclick = async () => {
     // Appelle ton backend pour obtenir le token
     const res = await fetch("https://livekittest-production.up.railway.app/token?role=admin"); 
-    const { token } = await res.json();
-
-    const LIVEKIT_URL = "wss://livekit-production-34a9.up.railway.app"; // ton serveur LiveKit
-    room = new Room();
-    await room.connect(LIVEKIT_URL, token);
-    await room.localParticipant.setMicrophoneEnabled(true);
+    const { token, url, room: roomName } = await res.json()
+    room = new Room()
+    await room.connect(url, token)
+    await room.localParticipant.setMicrophoneEnabled(true)
 
     document.getElementById("joinAdmin").disabled = true;
     document.getElementById("stopAdmin").disabled = false;

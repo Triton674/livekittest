@@ -11,30 +11,39 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, "public")));
 
-// Home page
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+// tes identifiants LiveKit (depuis Railway ou .env)
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
+const LIVEKIT_URL = process.env.LIVEKIT_URL; // exemple: wss://livekit-production-34a9.up.railway.app
 
-// Route pour générer un token LiveKit
+// Route pour générer un token
 app.get("/token", (req, res) => {
-  const role = req.query.role === "admin" ? "admin" : "participant";
+  const role = req.query.role || "listener";
+  const roomName = req.query.room || "testroom";
 
-  const apiKey = process.env.LIVEKIT_API_KEY;
-  const apiSecret = process.env.LIVEKIT_API_SECRET;
-
-  if (!apiKey || !apiSecret) {
-    return res.status(500).json({ error: "LIVEKIT_API_KEY/SECRET missing" });
-  }
-
-  const at = new AccessToken(apiKey, apiSecret, {
-    identity: `user-${Math.floor(Math.random() * 1000)}`,
+  // Crée un token LiveKit
+  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+    identity: role + "_" + Math.floor(Math.random() * 1000),
   });
-  at.addGrant({ roomJoin: true, room: "*" });
-  at.addGrant({ roomAdmin: role === "admin" });
+  at.addGrant({
+    room: roomName,
+    type: "room",
+    // role peut être "admin" ou "listener"
+    // si tu veux donner le contrôle de micro/caméra, admin
+    roomJoin: true,
+    canPublish: role === "admin",
+    canSubscribe: true,
+  });
 
-  res.json({ token: at.toJwt() });
+  const token = at.toJwt();
+  res.json({
+    token,
+    url: LIVEKIT_URL,
+    room: roomName,
+  });
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
