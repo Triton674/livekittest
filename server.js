@@ -19,27 +19,34 @@ const LIVEKIT_URL = process.env.LIVEKIT_URL;
 
 // Route pour générer un token
 app.get("/token", (req, res) => {
-  const role = req.query.role || "listener";
-  const identity = `${role}_${Math.floor(Math.random() * 10000)}`;
-  const roomName = req.query.room || "testroom";
-
   try {
-    const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity });
+    const role = req.query.role || "listener";
+    const identity = `${role}_${Math.floor(Math.random()*10000)}`;
+    const roomName = req.query.room || "testroom";
 
-    // Grant pour la room
+    console.log("LIVEKIT_URL:", process.env.LIVEKIT_URL);
+    console.log("LIVEKIT_API_KEY:", process.env.LIVEKIT_API_KEY ? "ok" : "missing");
+    console.log("LIVEKIT_API_SECRET:", process.env.LIVEKIT_API_SECRET ? "ok" : "missing");
+
+    const token = new AccessToken(
+      process.env.LIVEKIT_API_KEY,
+      process.env.LIVEKIT_API_SECRET,
+      { identity }
+    );
     token.addGrant({ room: roomName });
 
     res.json({
       token: token.toJwt(),
-      url: LIVEKIT_URL,
+      url: process.env.LIVEKIT_URL,
       room: roomName,
       identity
     });
   } catch (err) {
     console.error("Erreur génération token:", err);
-    res.status(500).json({ error: "Impossible de générer le token" });
+    res.status(500).json({ error: err.message });
   }
 });
+
 
 // Route par défaut
 app.get("/", (req, res) => {
