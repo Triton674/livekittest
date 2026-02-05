@@ -1,51 +1,22 @@
-import express from "express"
-import cors from "cors"
-import dotenv from "dotenv"
-import { AccessToken } from "livekit-server-sdk"
+import express from "express";
+import cors from "cors";
+import path from "path";
+import { fileURLToPath } from "url";
 
-dotenv.config()
-const app = express()
-app.use(cors())
-app.use(express.json())
+const app = express();
+app.use(cors());
 
-const PORT = process.env.PORT || 3000
-const LIVEKIT_URL = process.env.LIVEKIT_URL
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET
+// Permet de servir les fichiers statiques dans /public
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use(express.static(path.join(__dirname, "public")));
 
-// Pour garder une room admin
-let adminRoomName = null
+// Si tu veux une route par défaut
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
-// Endpoint pour récupérer le token
-app.get("/token", (req, res) => {
-  const role = req.query.role || "participant" // admin ou participant
-
-  // Création de la room si c'est l'admin et qu'aucune room n'existe
-  if (role === "admin" && !adminRoomName) {
-    adminRoomName = `room-${Date.now()}`
-  }
-
-  if (!adminRoomName) {
-    return res.status(400).json({ error: "No admin room active" })
-  }
-
-  const identity = role === "admin" ? "admin" : `user-${Math.floor(Math.random()*1000)}`
-
-  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity,
-    name: identity,
-  })
-
-  at.addGrant({
-    room: adminRoomName,
-    type: "room",
-  })
-
-  res.json({
-    token: at.toJwt(),
-    url: LIVEKIT_URL,
-    room: adminRoomName,
-  })
-})
-
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
