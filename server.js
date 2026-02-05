@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
-import { AccessToken, VideoGrant } from "livekit-server-sdk"; // <-- VideoGrant ici
+import { AccessToken } from "livekit-server-sdk"; // plus de VideoGrant
 
 const app = express();
 app.use(cors());
@@ -13,23 +13,18 @@ app.use(express.static(path.join(__dirname, "public")));
 
 const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
 const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
-const LIVEKIT_URL = process.env.LIVEKIT_URL; // ex: wss://livekit-production-34a9.up.railway.app
+const LIVEKIT_URL = process.env.LIVEKIT_URL;
 
 app.get("/token", (req, res) => {
-  const role = req.query.role || "listener";
+  const identity = req.query.role + "_" + Math.floor(Math.random() * 1000);
   const roomName = req.query.room || "testroom";
 
-  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
-    identity: role + "_" + Math.floor(Math.random() * 1000),
-  });
-
-  const grant = new VideoGrant({ room: roomName }); // <-- VideoGrant
-  at.addGrant(grant);
-
-  const token = at.toJwt();
+  // Dans la nouvelle version, on crée juste un AccessToken et on ajoute le nom de la room
+  const token = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, { identity });
+  token.addGrant({ room: roomName }); // on passe un objet {room: "roomName"}
 
   res.json({
-    token,
+    token: token.toJwt(),
     url: LIVEKIT_URL,
     room: roomName,
   });
