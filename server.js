@@ -1,57 +1,51 @@
-import express from "express";
-import cors from "cors";
-import path from "path";
-import { fileURLToPath } from "url";
-import { AccessToken } from "livekit-server-sdk"; // juste AccessToken
+import express from "express"
+import cors from "cors"
+import dotenv from "dotenv"
+import { AccessToken } from "livekit-server-sdk"
 
-const app = express();
-app.use(cors());
+dotenv.config()
+const app = express()
+app.use(cors())
+app.use(express.json())
 
-// Pour servir les fichiers statiques dans /public
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-app.use(express.static(path.join(__dirname, "public")));
+const PORT = process.env.PORT || 3000
+const LIVEKIT_URL = process.env.LIVEKIT_URL
+const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY
+const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET
 
-// Variables d'environnement LiveKit (à configurer sur Railway)
-const LIVEKIT_API_KEY = process.env.LIVEKIT_API_KEY;
-const LIVEKIT_API_SECRET = process.env.LIVEKIT_API_SECRET;
-const LIVEKIT_URL = process.env.LIVEKIT_URL;
+// Pour garder une room admin
+let adminRoomName = null
 
-// Route pour générer un token
+// Endpoint pour récupérer le token
 app.get("/token", (req, res) => {
-  try {
-    const role = req.query.role || "listener";
-    const identity = `${role}_${Math.floor(Math.random()*10000)}`;
-    const roomName = req.query.room || "testroom";
+  const role = req.query.role || "participant" // admin ou participant
 
-    console.log("LIVEKIT_URL:", process.env.LIVEKIT_URL);
-    console.log("LIVEKIT_API_KEY:", process.env.LIVEKIT_API_KEY ? "ok" : "missing");
-    console.log("LIVEKIT_API_SECRET:", process.env.LIVEKIT_API_SECRET ? "ok" : "missing");
-
-    const token = new AccessToken(
-      process.env.LIVEKIT_API_KEY,
-      process.env.LIVEKIT_API_SECRET,
-      { identity }
-    );
-    token.addGrant({ room: roomName });
-
-    res.json({
-      token: token.toJwt(),
-      url: process.env.LIVEKIT_URL,
-      room: roomName,
-      identity
-    });
-  } catch (err) {
-    console.error("Erreur génération token:", err);
-    res.status(500).json({ error: err.message });
+  // Création de la room si c'est l'admin et qu'aucune room n'existe
+  if (role === "admin" && !adminRoomName) {
+    adminRoomName = `room-${Date.now()}`
   }
-});
 
+  if (!adminRoomName) {
+    return res.status(400).json({ error: "No admin room active" })
+  }
 
-// Route par défaut
-app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
-});
+  const identity = role === "admin" ? "admin" : `user-${Math.floor(Math.random()*1000)}`
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+  const at = new AccessToken(LIVEKIT_API_KEY, LIVEKIT_API_SECRET, {
+    identity,
+    name: identity,
+  })
+
+  at.addGrant({
+    room: adminRoomName,
+    type: "room",
+  })
+
+  res.json({
+    token: at.toJwt(),
+    url: LIVEKIT_URL,
+    room: adminRoomName,
+  })
+})
+
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`))

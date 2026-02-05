@@ -15,38 +15,65 @@
 <button id="stopAdmin" disabled>Stop Session</button>
 <div id="transcript"></div>
 <script type="module">
- import { Room } from "https://unpkg.com/livekit-client/dist/livekit-client.esm.mjs";
+import { Room } from "https://unpkg.com/livekit-client/dist/livekit-client.esm.mjs"
 
-let room;
+let room, recognition, recorder, chunks=[], micStream
 
 document.getElementById("joinAdmin").onclick = async () => {
-  try {
-    // Appel à ton backend pour récupérer le token
-    const res = await fetch("/token?role=admin"); // localhost:3000/token ou déployé
-    const data = await res.json();
+  const res = await fetch("https://livekittest-production.up.railway.app//token?role=admin")
+  const { token, url, room: roomName } = await res.json()
+  room = new Room()
+  await room.connect(url, token)
+  await room.localParticipant.setMicrophoneEnabled(true)
 
-    const { token, url, room: roomName } = data;
+  document.getElementById("joinAdmin").disabled = true
+  document.getElementById("stopAdmin").disabled = false
 
-    // Connexion à LiveKit
-    room = new Room();
+  startTranscription()
+  startRecording()
+}
 
-    await room.connect(url, token);
-    await room.localParticipant.setMicrophoneEnabled(true);
+function startTranscription() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
+  if (!SpeechRecognition) return
 
-    document.getElementById("joinAdmin").disabled = true;
-    document.getElementById("stopAdmin").disabled = false;
+  recognition = new SpeechRecognition()
+  recognition.continuous = true
+  recognition.interimResults = true
+  recognition.lang = "fr-FR"
 
-    console.log(`Connecté au room ${roomName} avec identity ${data.identity}`);
-
-    // Ici tu peux lancer la transcription ou l'enregistrement
-    // startTranscription();
-    // startRecording();
-  } catch (err) {
-    console.error("Erreur connexion LiveKit:", err);
-    alert("Impossible de se connecter au serveur LiveKit");
+  recognition.onresult = e => {
+    let text = ""
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      text += e.results[i][0].transcript
+    }
+    document.getElementById("transcript").innerText += text + "\n"
   }
-};
 
+  recognition.onend = () => recognition.start()
+  recognition.start()
+}
+
+async function startRecording() {
+  micStream = await navigator.mediaDevices.getUserMedia({ audio: true })
+  recorder = new MediaRecorder(micStream)
+  recorder.ondataavailable = e => chunks.push(e.data)
+  recorder.start()
+}
+
+document.getElementById("stopAdmin").onclick = () => {
+  recognition.stop()
+  recorder.stop()
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: "audio/webm" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = "session-admin.webm"
+    a.click()
+  }
+  micStream.getTracks().forEach(track => track.stop())
+}
 </script>
 
 </body>
