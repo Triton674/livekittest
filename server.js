@@ -21,7 +21,7 @@ app.get("/token", async (req, res) => {
   const role = req.query.role || "listener";
 
   const tokenResponse = await fetch(
-    `https://livekit-production-34a9.up.railway.app/token?role=${role}`
+    `https://livekittest-production.up.railway.app/token?role=${role}`
   );
   const data = await tokenResponse.json();
   
