@@ -15,23 +15,26 @@
 <button id="stopAdmin" disabled>Stop Session</button>
 <div id="transcript"></div>
 <script type="module">
-import { Room } from "https://unpkg.com/livekit-client/dist/livekit-client.esm.mjs"
+  import { Room } from "https://unpkg.com/livekit-client/dist/livekit-client.esm.mjs";
 
-let room, recognition, recorder, chunks=[], micStream
+  let room;
 
-document.getElementById("joinAdmin").onclick = async () => {
-  const res = await fetch("https://livekittest-production.up.railway.app/token?role=admin")
-  const { token, url, room: roomName } = await res.json()
-  room = new Room()
-  await room.connect(url, token)
-  await room.localParticipant.setMicrophoneEnabled(true)
+  document.getElementById("joinAdmin").onclick = async () => {
+    // Appelle ton backend pour obtenir le token
+    const res = await fetch("http://localhost:3000/token?role=admin"); 
+    const { token } = await res.json();
 
-  document.getElementById("joinAdmin").disabled = true
-  document.getElementById("stopAdmin").disabled = false
+    const LIVEKIT_URL = "wss://livekit-production-34a9.up.railway.app"; // ton serveur LiveKit
+    room = new Room();
+    await room.connect(LIVEKIT_URL, token);
+    await room.localParticipant.setMicrophoneEnabled(true);
 
-  startTranscription()
-  startRecording()
-}
+    document.getElementById("joinAdmin").disabled = true;
+    document.getElementById("stopAdmin").disabled = false;
+
+    startTranscription();
+    startRecording();
+  };
 
 function startTranscription() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
