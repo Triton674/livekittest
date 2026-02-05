@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import path from "path";
 import { fileURLToPath } from "url";
+import fetch from "node-fetch";
 
 const app = express();
 app.use(cors());
@@ -14,6 +15,17 @@ app.use(express.static(path.join(__dirname, "public")));
 // Si tu veux une route par défaut
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+app.get("/token", async (req, res) => {
+  const role = req.query.role || "listener";
+
+  const tokenResponse = await fetch(
+    `https://livekit-production-34a9.up.railway.app/token?role=${role}`
+  );
+  const data = await tokenResponse.json();
+  
+  res.json(data); // ton frontend appelle maintenant /token sur ton backend
 });
 
 const PORT = process.env.PORT || 3000;
