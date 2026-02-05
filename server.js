@@ -2,7 +2,14 @@ import express from "express"
 import cors from "cors"
 import dotenv from "dotenv"
 import { AccessToken } from "livekit-server-sdk"
+import path from "path"
+import { fileURLToPath } from "url"
 
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+
+// ⬇️ AJOUT ICI
+app.use(express.static(path.join(__dirname, "public")))
 dotenv.config()
 const app = express()
 app.use(cors())
@@ -46,6 +53,9 @@ app.get("/token", (req, res) => {
     url: LIVEKIT_URL,
     room: adminRoomName,
   })
+})
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"))
 })
 
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`))
