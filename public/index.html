@@ -20,7 +20,7 @@ import { Room } from "https://unpkg.com/livekit-client/dist/livekit-client.esm.m
 let room, recognition, recorder, chunks=[], micStream
 
 document.getElementById("joinAdmin").onclick = async () => {
-  const res = await fetch("https://livekit-production-34a9.up.railway.app/token?role=admin")
+  const res = await fetch("https://livekittest-production.up.railway.app/token?role=admin")
   const { token, url, room: roomName } = await res.json()
   room = new Room()
   await room.connect(url, token)

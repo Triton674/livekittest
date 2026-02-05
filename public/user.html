@@ -16,7 +16,7 @@
 import { Room } from "https://unpkg.com/livekit-client/dist/livekit-client.esm.mjs"
 let room
 document.getElementById("joinParticipant").onclick = async () => {
-  const res = await fetch("https://livekit-production-34a9.up.railway.app/token?role=participant")
+  const res = await fetch("https://livekittest-production.up.railway.app/token?role=participant")
   const { token, url } = await res.json()
   room = new Room()
   await room.connect(url, token)
