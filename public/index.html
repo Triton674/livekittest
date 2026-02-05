@@ -21,7 +21,7 @@
 
   document.getElementById("joinAdmin").onclick = async () => {
     // Appelle ton backend pour obtenir le token
-    const res = await fetch("http://localhost:3000/token?role=admin"); 
+    const res = await fetch("https://livekittest-production.up.railway.app/token?role=admin"); 
     const { token } = await res.json();
 
     const LIVEKIT_URL = "wss://livekit-production-34a9.up.railway.app"; // ton serveur LiveKit
